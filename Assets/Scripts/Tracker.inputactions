@@ -1,0 +1,34 @@
+{
+    "name": "Tracker",
+    "maps": [
+        {
+            "name": "Tracker",
+            "id": "5f8a76f6-1881-4d3b-a995-6460fda202c4",
+            "actions": [
+                {
+                    "name": "Position",
+                    "type": "Value",
+                    "id": "e3e7271b-d3a1-4fa0-929a-36adc6e7cba8",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d58c4d2a-4e85-45b7-a94d-bfd31abdeb47",
+                    "path": "<XRViveTracker>{Camera}/devicePosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Position",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

@@ -13,6 +13,8 @@ using System.IO;
 using System.IO.Ports;
 using System.Collections;
 using System.Threading;
+using System.Text;
+
 
 /**
  * This class contains methods that must be run from inside a thread and others
@@ -31,7 +33,7 @@ public abstract class AbstractSerialThread
     private int maxUnreadMessages;
 
     // Object from the .Net framework used to communicate with serial devices.
-    private SerialPort serialPort;
+    public SerialPort serialPort;
 
     // Amount of milliseconds alloted to a single read or connect. An
     // exception is thrown when such operations take more than this time
@@ -188,6 +190,7 @@ public abstract class AbstractSerialThread
         serialPort = new SerialPort(portName, baudRate);
         serialPort.ReadTimeout = readTimeout;
         serialPort.WriteTimeout = writeTimeout;
+        serialPort.Encoding = Encoding.GetEncoding(28591);
         serialPort.Open();
 
         if (enqueueStatusMessages)

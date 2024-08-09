@@ -53,7 +53,7 @@ public class SerialController : MonoBehaviour
 
     // Internal reference to the Thread and the object that runs in it.
     protected Thread thread;
-    protected SerialThreadLines serialThread;
+    public SerialThreadLines serialThread;
 
 
     // ------------------------------------------------------------------------
