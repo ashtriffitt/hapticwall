@@ -5,7 +5,7 @@ using UnityEngine;
 public class WallOffset : MonoBehaviour
 {
 
-    private Vector3 wallDefaultPos;
+   // public Vector3 wallDefaultPos;
 
     // Start is called before the first frame update
     void Start()
