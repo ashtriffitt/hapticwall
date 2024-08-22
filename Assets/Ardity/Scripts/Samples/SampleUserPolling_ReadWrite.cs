@@ -31,7 +31,7 @@ public class SampleUserPolling_ReadWrite : MonoBehaviour
 
         serialController = GameObject.Find("SerialController").GetComponent<SerialController>();
 
-        Debug.Log("Press A or Z to execute some actions");
+        //Debug.Log("Press A or Z to execute some actions");
 
         unicode = Encoding.Unicode;
         utf8 = Encoding.UTF8;
@@ -107,8 +107,10 @@ public class SampleUserPolling_ReadWrite : MonoBehaviour
 
         char[] chars = new char[] { (char)lower, (char)upper }; // Converts amt to 2 bytes, converts bytes to chars, sends to arduino;
 
+        /* FOR DEBUG
         Debug.Log("Lower: " + lower);
         Debug.Log("Upper: " + upper);
+        */
 
         serialController.serialThread.serialPort.Write(chars, 0, 2);
     }

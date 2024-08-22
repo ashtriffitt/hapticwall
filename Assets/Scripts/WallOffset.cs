@@ -5,23 +5,77 @@ using UnityEngine;
 public class WallOffset : MonoBehaviour
 {
 
-   // public Vector3 wallDefaultPos;
+    public float wallOffsetZ; // The magic number that the wall should always be offset from the tracker by
+    public float wallOffsetY;
+    public float wallOffsetX;
+
+    [SerializeField]
+    private float startingTrackerPos;
+
+    [SerializeField]
+    private GameObject tracker;
+
+    [SerializeField]
+    private SampleUserPolling_ReadWrite arduino;
 
     // Start is called before the first frame update
     void Start()
     {
-        
+       // arduino = GameObject.Find("SampleUserPolling").GetComponent<SampleUserPolling_ReadWrite>();
     }
 
-    // Update is called once per frame
+    // Update is called once per frame  
     void Update()
     {
         
     }
 
-    public void MoveWall(float offset)
+    // Offsets the virtual wall from the real wall
+    public void MoveVirtualWall(float offset)
     {
-        //transform.position = wallDefaultPos;
-        transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z + offset);
+        Debug.Log("Offset = " + offset);
+        Debug.Log("z transform of virtual wall = " + transform.position.z);
+        transform.position = new Vector3(transform.position.x, transform.position.y, (transform.position.z + offset));
+    }
+
+    public IEnumerator OffsetRealWall(float offset)
+    {
+        Debug.Log("Default tracker z pos = " + startingTrackerPos);
+        float target = startingTrackerPos + offset;
+        Debug.Log("Target z pos = " + target);
+
+        // If wall is in front of target
+        // Then move to desired position.
+        if (target > tracker.transform.position.z) {
+
+            while (target > tracker.transform.position.z) {
+                arduino.MoveMotor(100);
+                yield return new WaitForSeconds(.08f);
+            }
+            // Align both walls after real wall is done moving
+            MatchWalls();
+        }
+        // If wall is in front of target.
+        else {
+            while (target < tracker.transform.position.z) {
+                // Move wall towards target
+                arduino.MoveMotor(-100);
+                yield return new WaitForSeconds(.08f);
+            }
+            // Align both walls after real wall is done moving
+            MatchWalls();
+        }
+    }
+
+    // Sets the starting "center" position of the wall/tracker.
+    public void SetDefaultPos()
+    {
+        startingTrackerPos = tracker.transform.position.z;
+    }
+
+    // Places the virtual wall to match the real wall.
+    public void MatchWalls()
+    {
+        transform.position = new Vector3((tracker.transform.position.x + wallOffsetX), (tracker.transform.position.y + wallOffsetY), (tracker.transform.position.z + wallOffsetZ));
     }
 }

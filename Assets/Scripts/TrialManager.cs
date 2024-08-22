@@ -9,21 +9,21 @@ public class TrialManager : MonoBehaviour
 {
     public Array2DFloat offsetValues;
 
-    public WallOffset wallOffset;
+    private WallOffset wallOffset;
 
     public float trialTime;
     public float waitTime;
 
-    public LeapXRServiceProvider leap;
+    [SerializeField]
+    private LeapXRServiceProvider leap;
 
     private Camera mainCamera;
     private Camera blackScreen;
 
-    private int trialIndex = 0;
+    //ivate int trialIndex = 0;
 
     private Canvas questionnaire;
 
-    private bool hasAnswered;
 
     // Start is called before the first frame update
     void Start()
@@ -36,6 +36,9 @@ public class TrialManager : MonoBehaviour
 
         wallOffset = GameObject.Find("Wall").GetComponent<WallOffset>();
 
+        // Starts trial loop
+        //StartCoroutine("ChangeTrial");
+        //wallOffset.MoveRealWall(1);
         StartCoroutine("ChangeTrial");
     }
 
@@ -47,48 +50,82 @@ public class TrialManager : MonoBehaviour
 
     IEnumerator ChangeTrial()
     {
-        for (int i = 0; i < offsetValues.GridSize.y; i++) {
+        yield return new WaitForSeconds(.5f);
 
+        // Grab and save starting tracker position
+        wallOffset.SetDefaultPos();
+
+
+        // initial pos (wall + hands)
+        // initialize real wall pos
+        StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2,0)));
+        wallOffset.MatchWalls();
+
+        // Wall
+        // wallOffset.MatchWalls();
+        wallOffset.MoveVirtualWall(offsetValues.GetCell(0, 0));
+        Debug.Log("Wall offset " + offsetValues.GetCell(0, 0));
+        // Hands
+        //leap.deviceOffsetZAxis = offsetValues.GetCell(1, 0) + .08f;
+        Debug.Log("Hand offset" + offsetValues.GetCell(1, 0));
+
+        
+        for (int i = 1; i < offsetValues.GridSize.y; i++) {
+
+            Debug.Log("i = " + i);
             yield return new WaitForSeconds(trialTime);
 
-            // Camera off
+            // 'Start' of next trial
+            // Enabling of Black/questionnaire screen
             mainCamera.enabled = false;
             blackScreen.enabled = true;
 
-            // Resets to original positions
-            //wallOffset.MoveWall(wallOffset.wallDefaultPos.z);
+            // Move real wall to next spot but wait for wall to finish moving until continuing
+            StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2, i)));
+
+            // Resets Hands to original positions
             leap.deviceOffsetZAxis = 0;
 
-            // Moves to new positions
-            wallOffset.MoveWall(offsetValues.GetCell(0, trialIndex));
-            leap.deviceOffsetZAxis = offsetValues.GetCell(1, trialIndex);
+            // Moves virtual wall to new position
+            Debug.Log("Wall offset " + offsetValues.GetCell(0, i));
+            wallOffset.MoveVirtualWall(offsetValues.GetCell(0, i));
+            
+            // Hands
+            leap.deviceOffsetZAxis = offsetValues.GetCell(1, i);
+            Debug.Log("Hand offset" + offsetValues.GetCell(1, i));
 
             // Enable questionnaire every two trials
-            if (i % 2 != 0) {
+            if (i % 2 == 0) {
                 questionnaire.enabled = true;
 
-                // WAIT FOR ANSWER - change this 
-                yield return new WaitUntil(() => Input.GetKeyDown(KeyCode.Mouse0));
+                // Wait until subject answers to go to next trial
+                yield return new WaitUntil(() => (Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.Mouse1)));
 
                 questionnaire.enabled = false;
-                hasAnswered = false;
             }
             else {
+                // Wait for next trial
                 yield return new WaitForSeconds(waitTime);
             }
 
-            // Camera on
+            // Back to trial screen
             blackScreen.enabled = false;
             mainCamera.enabled = true;
 
-
-            // Index increase, 
-            Debug.Log("Next");
-        }
+            Debug.Log("New trial"); 
+        } 
     }
 
-    private void ClickAnswer()
+    IEnumerator test()
     {
-        hasAnswered = true;
+        yield return new WaitForSeconds(.5f);
+
+        // Grab and save starting tracker position
+        wallOffset.SetDefaultPos();
+        wallOffset.MatchWalls();
+
+        StartCoroutine(wallOffset.OffsetRealWall(.025f));
+        wallOffset.MatchWalls();
+
     }
 }
