@@ -42,14 +42,16 @@ public class WallOffset : MonoBehaviour
     {
         Debug.Log("Default tracker z pos = " + startingTrackerPos);
         float target = startingTrackerPos + offset;
+        target = Mathf.Abs(target);
         Debug.Log("Target z pos = " + target);
 
         // If wall is in front of target
         // Then move to desired position.
-        if (target > tracker.transform.position.z) {
+        Debug.Log("Current tracker z pos = " + Mathf.Abs(tracker.transform.position.z));
+        if (target > Mathf.Abs(tracker.transform.position.z)) {
 
-            while (target > tracker.transform.position.z) {
-                arduino.MoveMotor(100);
+            while (target > Mathf.Abs(tracker.transform.position.z)) {
+                arduino.MoveMotor(200);
                 yield return new WaitForSeconds(.08f);
             }
             // Align both walls after real wall is done moving
@@ -57,9 +59,9 @@ public class WallOffset : MonoBehaviour
         }
         // If wall is in front of target.
         else {
-            while (target < tracker.transform.position.z) {
+            while (target < Mathf.Abs(tracker.transform.position.z)) {
                 // Move wall towards target
-                arduino.MoveMotor(-100);
+                arduino.MoveMotor(-200);
                 yield return new WaitForSeconds(.08f);
             }
             // Align both walls after real wall is done moving
@@ -71,11 +73,13 @@ public class WallOffset : MonoBehaviour
     public void SetDefaultPos()
     {
         startingTrackerPos = tracker.transform.position.z;
+        startingTrackerPos = Mathf.Abs(startingTrackerPos);
     }
 
     // Places the virtual wall to match the real wall.
     public void MatchWalls()
     {
         transform.position = new Vector3((tracker.transform.position.x + wallOffsetX), (tracker.transform.position.y + wallOffsetY), (tracker.transform.position.z + wallOffsetZ));
+       // transform.rotation = new Quaternion(0, 0, 0, 0);
     }
 }
