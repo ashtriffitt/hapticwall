@@ -14,6 +14,8 @@ public class TrialManager : MonoBehaviour
 
     public float trialTime;
     public float waitTime;
+    [SerializeField]
+    private int practiceTime;
 
     [SerializeField]
     private LeapXRServiceProvider leap;
@@ -24,7 +26,20 @@ public class TrialManager : MonoBehaviour
     private Canvas questionnaire;
     private AnswerTracker answerTracker;
 
-    //public Session session;
+    private bool inTrial = false;
+    private bool skip;
+
+    private int trialMask;
+    public LayerMask betweenMask;
+
+    private AudioSource changeSound;
+
+    [SerializeField]
+    private Material blue;
+    [SerializeField]
+    public Material green;
+
+    private Renderer wall;
 
 
     // Start is called before the first frame update
@@ -39,15 +54,30 @@ public class TrialManager : MonoBehaviour
         questionnaire = GameObject.Find("Questionnaire").GetComponent<Canvas>();
         answerTracker = GameObject.Find("Questionnaire").GetComponent<AnswerTracker>();
 
-
         wallOffset = GameObject.Find("Wall").GetComponent<WallOffset>();
 
+        trialMask = mainCamera.cullingMask;
+
+        changeSound = GetComponent<AudioSource>();
+
+        wall = GameObject.Find("Wall").GetComponent<Renderer>();
+        wall.material = blue;
     }
 
     // Update is called once per frame
     void Update()
     {
-       
+       // Skipping trial function
+       if (Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.Mouse1)) {
+            
+            // if WaitFor is active, end it.
+            if (inTrial) {
+                skip = true;
+                inTrial = false;
+                Debug.Log("skip");
+            }
+            // skips to inbetween trial screen
+        }
     }
 
     public IEnumerator ChangeTrial(Session session)
@@ -58,60 +88,71 @@ public class TrialManager : MonoBehaviour
         // Grab and save starting tracker position
         wallOffset.SetDefaultPos();
 
-
-        // initial pos (wall + hands)
-        // initialize real wall pos
-        // This shouldnt happen for default pos
-        //yield return StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2,0)));
-        wallOffset.MatchWalls();
-
         // Wall
         wallOffset.MatchWalls();
-        
-        wallOffset.MoveVirtualWall(offsetValues.GetCell(0, 0));
-        Debug.Log("Wall offset " + offsetValues.GetCell(0, 0));
-        // Hands
-        leap.deviceOffsetZAxis = offsetValues.GetCell(1, 0) + .08f;
-        Debug.Log("Hand offset" + offsetValues.GetCell(1, 0));
 
-        
+        yield return new WaitForSeconds(practiceTime);
+
+        // END OF PRACTICE TRIAL
+
+        // Initialize first trial
+        ChangeToBlackScreenCamera();
+        wallOffset.MoveVirtualWall(offsetValues.GetCell(0, 0) / 100);
+        leap.deviceOffsetZAxis = offsetValues.GetCell(1, 0) / 100 + .08f;
+
+
+        //StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2, 0) / 100));
+
+        yield return new WaitForSeconds(waitTime);
+
+        changeSound.Play();
+        session.BeginNextTrial();
+        ChangeToTrialCamera();
+
         for (int i = 1; i < offsetValues.GridSize.y; i++) {
 
             Debug.Log("i = " + i);
-            yield return new WaitForSeconds(trialTime);
+            CameraColor(i);
+            //yield return new WaitForSeconds(trialTime);
+            yield return StartCoroutine("WaitFor", session);
 
             session.BeginNextTrial();
 
             // 'Start' of next trial
             // Enabling of Black/questionnaire screen
-
             // Change color of "blackout" screen
-            CameraColor(i);
+            
 
-            mainCamera.enabled = false;
-            blackScreen.enabled = true;
+            //mainCamera.enabled = false;
+            // blackScreen.enabled = true;
+            ChangeToBlackScreenCamera();
 
             // Move real wall to next spot but wait for wall to finish moving until continuing
-            // This was a Coroutine ^ it was adding to the time inbetween trials
-            yield return StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2, i)));
+            // This was a Coroutine ^ it was adding to the time inbetween trials // Replace so its always a consistent time inbetween trials
+            //StartCoroutine(wallOffset.OffsetRealWall(offsetValues.GetCell(2, i) / 100));
 
-            // Resets Hands to original positions
+            // Resets Hands to original positions // Not needed, but doesnt do anything bad
             leap.deviceOffsetZAxis = 0.8f;
 
+            // match wall
+            wallOffset.MatchWalls();
+
             // Moves virtual wall to new position
-            Debug.Log("Wall offset " + offsetValues.GetCell(0, i));
-            wallOffset.MoveVirtualWall(offsetValues.GetCell(0, i));
+            Debug.Log("Wall offset " + offsetValues.GetCell(0, i) / 100);
+            wallOffset.MoveVirtualWall(offsetValues.GetCell(0, i) / 100);
             
             // Hands
-            leap.deviceOffsetZAxis = offsetValues.GetCell(1, i) + .08f;
-            Debug.Log("Hand offset" + offsetValues.GetCell(1, i));
+            leap.deviceOffsetZAxis = offsetValues.GetCell(1, i) / 100 + .08f;
+            Debug.Log("Hand offset" + offsetValues.GetCell(1, i) / 100);
 
             // Enable questionnaire every two trials
             if (i % 2 == 0) {
                 questionnaire.enabled = true;
 
                 // Wait until subject answers to go to next trial
-                yield return new WaitUntil(() => (Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.Mouse1)));
+
+                yield return StartCoroutine(answerTracker.AnswerDelay());
+                yield return new WaitUntil(() => (answerTracker.canAnswer == false));
 
                 // Store answer
                 session.CurrentTrial.settings.SetValue("Questionnaire Answers", answerTracker.lastAnswer);
@@ -126,12 +167,73 @@ public class TrialManager : MonoBehaviour
             ManualSaveData(session);
 
             // Back to trial screen
-            blackScreen.enabled = false;
-            mainCamera.enabled = true;
+            ChangeToTrialCamera();
+            // Play sound
+            changeSound.Play();
 
             // End UXF trial / save trial data
             Debug.Log("New trial"); 
         } 
+    }
+
+    // Trial timer without using a WaitForSeconds(). If skip key is pressed, exits timer;
+    private IEnumerator WaitFor(Session session)
+    {
+        inTrial = true;
+        Debug.Log("waiting");
+        for (float timer = trialTime; timer >= 0; timer -= Time.deltaTime) {
+            if (skip) { 
+                skip = false; 
+                yield break;
+                session.CurrentTrial.settings.SetValue("Trial Time", trialTime - timer);
+            }
+            session.CurrentTrial.settings.SetValue("Trial Time", trialTime);
+            yield return null;
+        }
+        inTrial = false;
+    }
+
+    private void ManualSaveData(Session session)
+    {
+        // Save data from previous trial
+        // Real wall position
+        // Virtual wall offset
+        // Hand offset
+        Debug.Log("Save data");
+
+        session.CurrentTrial.settings.SetValue("Hand Offset", offsetValues.GetCell(1, session.currentTrialNum));
+        session.CurrentTrial.settings.SetValue("Virtual Wall Offset From Real Wall", offsetValues.GetCell(0, session.currentTrialNum));
+        session.CurrentTrial.settings.SetValue("Real Wall Position", offsetValues.GetCell(2, session.currentTrialNum));
+        
+
+        // Questionnaire response
+
+        // Start next trial.
+    }
+    
+    // Switches to camera for inbetween trials
+    private void ChangeToBlackScreenCamera()
+    {
+        mainCamera.cullingMask = betweenMask;
+        mainCamera.clearFlags = CameraClearFlags.SolidColor;
+    }
+
+    // Switches to camera for during trial
+    private void ChangeToTrialCamera()
+    {
+        mainCamera.cullingMask = trialMask;
+        mainCamera.clearFlags = CameraClearFlags.Skybox;
+    }
+
+    // Changes the background color of the camera to identify trials
+    private void CameraColor(int index)
+    {
+        if (index % 2 == 0) {
+            wall.material = green;
+        }
+        else {
+            wall.material = blue;
+        }
     }
 
     private IEnumerator PracticeTrial()
@@ -156,31 +258,4 @@ public class TrialManager : MonoBehaviour
         yield return new WaitForSeconds(30);
     }
 
-
-    private void ManualSaveData(Session session)
-    {
-        // Save data from previous trial
-        // Real wall position
-        // Virtual wall offset
-        // Hand offset
-        Debug.Log("Save data");
-
-        session.CurrentTrial.settings.SetValue("Hand Offset", offsetValues.GetCell(1, session.currentTrialNum));
-        session.CurrentTrial.settings.SetValue("Virtual Wall Offset From Real Wall", offsetValues.GetCell(0, session.currentTrialNum));
-        session.CurrentTrial.settings.SetValue("Real Wall Position", offsetValues.GetCell(2, session.currentTrialNum));
-
-        // Questionnaire response
-
-        // Start next trial.
-    }
-
-    private void CameraColor(int index)
-    {
-        if (index % 2 == 0) {
-            blackScreen.backgroundColor = Color.green;
-        }
-        else {
-            blackScreen.backgroundColor = Color.blue;
-        }
-    }
 }

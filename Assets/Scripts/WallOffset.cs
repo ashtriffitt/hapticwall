@@ -51,8 +51,8 @@ public class WallOffset : MonoBehaviour
         if (target > Mathf.Abs(tracker.transform.position.z)) {
 
             while (target > Mathf.Abs(tracker.transform.position.z)) {
-                arduino.MoveMotor(200);
-                yield return new WaitForSeconds(.08f);
+                arduino.MoveMotor(100);
+                yield return new WaitForSeconds(.02f);
             }
             // Align both walls after real wall is done moving
             MatchWalls();
@@ -61,8 +61,8 @@ public class WallOffset : MonoBehaviour
         else {
             while (target < Mathf.Abs(tracker.transform.position.z)) {
                 // Move wall towards target
-                arduino.MoveMotor(-200);
-                yield return new WaitForSeconds(.08f);
+                arduino.MoveMotor(-100);
+                yield return new WaitForSeconds(.02f);
             }
             // Align both walls after real wall is done moving
             MatchWalls();
@@ -79,7 +79,7 @@ public class WallOffset : MonoBehaviour
     // Places the virtual wall to match the real wall.
     public void MatchWalls()
     {
-        transform.position = new Vector3((tracker.transform.position.x + wallOffsetX), (tracker.transform.position.y + wallOffsetY), (tracker.transform.position.z + wallOffsetZ));
+        transform.position = new Vector3((tracker.transform.position.x - wallOffsetX), (tracker.transform.position.y - wallOffsetY), (tracker.transform.position.z - wallOffsetZ));
        // transform.rotation = new Quaternion(0, 0, 0, 0);
     }
 }
