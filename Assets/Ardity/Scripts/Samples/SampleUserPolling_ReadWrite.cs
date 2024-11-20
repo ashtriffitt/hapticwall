@@ -49,7 +49,7 @@ public class SampleUserPolling_ReadWrite : MonoBehaviour
         // sample serial device that accepts this input is given in the README.
         if (Input.GetKeyDown(KeyCode.A)) {
             Debug.Log("Sending A");
-            ushort number = 5000;
+            ushort number = 100;
 
             MoveMotor(number);
         }
@@ -65,7 +65,7 @@ public class SampleUserPolling_ReadWrite : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space)) {
             Debug.Log("Sending SPACE");
-            ushort number = 1700;
+            ushort number = 500;
 
             MoveMotor(number);
         }

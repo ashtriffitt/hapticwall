@@ -18,6 +18,8 @@ public class WallOffset : MonoBehaviour
     [SerializeField]
     private SampleUserPolling_ReadWrite arduino;
 
+    public bool wallMoving;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -35,11 +37,14 @@ public class WallOffset : MonoBehaviour
     {
         Debug.Log("Offset = " + offset);
         Debug.Log("z transform of virtual wall = " + transform.position.z);
+        Debug.Log("z transform of real wall = " + tracker.transform.position.z);
         transform.position = new Vector3(transform.position.x, transform.position.y, (transform.position.z + offset));
     }
 
     public IEnumerator OffsetRealWall(float offset)
     {
+        wallMoving = true;
+
         Debug.Log("Default tracker z pos = " + startingTrackerPos);
         float target = startingTrackerPos + offset;
         target = Mathf.Abs(target);
@@ -47,12 +52,12 @@ public class WallOffset : MonoBehaviour
 
         // If wall is in front of target
         // Then move to desired position.
-        Debug.Log("Current tracker z pos = " + Mathf.Abs(tracker.transform.position.z));
+
         if (target > Mathf.Abs(tracker.transform.position.z)) {
 
             while (target > Mathf.Abs(tracker.transform.position.z)) {
-                arduino.MoveMotor(100);
-                yield return new WaitForSeconds(.02f);
+                arduino.MoveMotor(60);
+                yield return new WaitForSeconds(.01f);
             }
             // Align both walls after real wall is done moving
             MatchWalls();
@@ -61,12 +66,46 @@ public class WallOffset : MonoBehaviour
         else {
             while (target < Mathf.Abs(tracker.transform.position.z)) {
                 // Move wall towards target
-                arduino.MoveMotor(-100);
-                yield return new WaitForSeconds(.02f);
+                arduino.MoveMotor(-60);
+                yield return new WaitForSeconds(.01f);
             }
             // Align both walls after real wall is done moving
             MatchWalls();
         }
+
+        wallMoving = false;
+    }
+
+    public IEnumerator DummyMovement()
+    {
+        // Move the wall a bit and then bring it back to where it was
+
+        wallMoving = true;
+
+        float startingPos = tracker.transform.position.z;
+        startingPos = Mathf.Abs(startingPos);
+        float target = Mathf.Abs(tracker.transform.position.z) + .035f;
+
+        Debug.Log(startingPos + " start");
+        Debug.Log(target + " target");
+
+        Debug.Log("Moving back");
+
+        // Now move the wall to the  raget, and once it reaches the target move it back to where it started.
+        while (target > Mathf.Abs(tracker.transform.position.z)) {
+            arduino.MoveMotor(100);
+            yield return new WaitForSeconds(.02f);
+        }
+
+        Debug.Log("Moving forward");
+
+        while (startingPos < Mathf.Abs(tracker.transform.position.z)) {
+            arduino.MoveMotor(-100);
+            yield return new WaitForSeconds(.02f);
+        }
+
+        MatchWalls();
+        wallMoving = false;
     }
 
     // Sets the starting "center" position of the wall/tracker.
@@ -80,6 +119,5 @@ public class WallOffset : MonoBehaviour
     public void MatchWalls()
     {
         transform.position = new Vector3((tracker.transform.position.x - wallOffsetX), (tracker.transform.position.y - wallOffsetY), (tracker.transform.position.z - wallOffsetZ));
-       // transform.rotation = new Quaternion(0, 0, 0, 0);
     }
 }

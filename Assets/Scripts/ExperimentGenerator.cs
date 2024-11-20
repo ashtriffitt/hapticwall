@@ -8,17 +8,19 @@ public class ExperimentGenerator : MonoBehaviour
 {
     public int numTrials;
 
+    public int numPracticeTrials;
+
     public Array2DFloat trials;
+
+    [SerializeField]
+    public List<int[]> arrayList = new List<int[]>();
 
     [SerializeField]
     private TrialManager trialManager;
 
-    [SerializeField]
-    private int[] handOffsetIntervals;
-    [SerializeField]
-    private int[] wallOffsetIntervals;
-    [SerializeField]
-    private int[] wallDistanceIntervals;
+    public Vector3[] environments;
+
+    public GameObject dangerzones;
 
 
     public void Generate(Session session)
@@ -27,48 +29,92 @@ public class ExperimentGenerator : MonoBehaviour
         GameObject.Find("Main Camera").GetComponent<Camera>().enabled = true;
        GameObject.Find("Black Screen Camera").GetComponent<Camera>().enabled = false;
 
+        // Wall offset 0, hand offset 1, wall distance 2
+        for (int i = 0; i < 100; i++) {
+            arrayList.Add(new int[6]);
+        }
 
-        // Create practice session
-        Block practice = session.CreateBlock(1);
+        Debug.Log("array length" + arrayList.Count);
 
-        // Generate 3 blocks, one for each wall distance, each block is numTrials/3
-        Block block1 = session.CreateBlock(numTrials / 3);
-        Block block2 = session.CreateBlock(numTrials / 3);
-        Block block3 = session.CreateBlock(numTrials / 3);
-
-        // Populate block 1, randomly choose a wall distance to start at and then populate will all possible combinations of wall offset and hand offset.
-
-        // Make triaL grid
-        // Choose wall distance for first block
-        // populate block
         int index = 0;
-        for (int i = 0; i < trials.GridSize.y; i++) {
-            // Randomly choose wall distance for this block
-            trials.SetCell(2, i, wallDistanceIntervals[0]);
+        for (int i = 0; i < arrayList.Count; i++) {
 
-            // Cycle through wall offset values
-            trials.SetCell(0, i, wallOffsetIntervals[i % 5]);
+            if (index == 10) {
+                index = 0;
+            }
 
-            // Change hand offset value every [threshold count] trials
+            arrayList[i][0] = (int)environments[index].x;
+            arrayList[i][1] = (int)environments[index].y;
+            arrayList[i][2] = (int)environments[index].z;
 
-            trials.SetCell(1, i, handOffsetIntervals[index]);
-            if ((i + 1) % handOffsetIntervals.Length == 0 && i != 0) {
-                index++;
+            arrayList[i][3] = (int)environments[(int)i / 10].x;
+            arrayList[i][4] = (int)environments[(int)i / 10].y;
+            arrayList[i][5] = (int)environments[(int)i / 10].z;
+               
+            index++;
+            
+            
+        }
+
+        // Remove trials comparing two identical environments
+        for (int i = 0; i < arrayList.Count; i++) {
+            if ((arrayList[i][0] == arrayList[i][3]) && (arrayList[i][1] == arrayList[i][4]) && (arrayList[i][2] == arrayList[i][5])) {
+                arrayList.RemoveAt(i);
             }
         }
 
-        /* for (int i = 0; i < trials.GridSize.y; i++) {
-            for (int j = 0; j < handOffsetIntervals.Length; j++) {
-                trials.SetCell(0, j, wallOffsetIntervals[j]);
-            }
+        // Shuffle array list of trials
+        arrayList.Shuffle();
+
+        
+
+        
+       /* for (int i = 0; i < trials.GridSize.y; i++) {
+            trials.SetCell(0, i, arrayList[i][0]);
+            trials.SetCell(1, i, arrayList[i][1]);
+            trials.SetCell(2, i, arrayList[i][2]);
+            trials.SetCell(3, i, arrayList[i][3]);
         } */
 
+        
+        // Convert arraylist to readable grid.
+        index = 0;
+        for (int i = 0; i < trials.GridSize.y; i += 2) {
+            trials.SetCell(0, i, arrayList[index][0]);
+            trials.SetCell(1, i, arrayList[index][1]);
+            trials.SetCell(2, i, arrayList[index][2]);
+
+            trials.SetCell(0, i + 1, arrayList[index][3]);
+            trials.SetCell(1, i + 1, arrayList[index][4]);
+            trials.SetCell(2, i + 1, arrayList[index][5]);
+
+            index++;
+        } 
+
+        // Create practice block
+        Block practice = session.CreateBlock(numPracticeTrials);
+
+        // Create main block
+        Block main = session.CreateBlock(numTrials);
+
+        trialManager.offsetValues = trials;
 
         // Start practice block
-        session.BeginNextTrial();
-        trialManager.StartCoroutine(trialManager.ChangeTrial(session)); // This will be replaced with 'Trial' / Or the initial trial methid
+        // session.BeginNextTrial();
+        //trialManager.StartCoroutine(trialManager.ChangeTrial(session)); // This will be replaced with 'Trial' / Or the initial trial methid
 
+        trialManager.StartCoroutine(trialManager.Practice(session));
+    }
 
-        // Once every trial is over, call end trial and record data. Then start next trial. This is all you need to do with UXF.
+    public void TurnOnDangerZones()
+    {
+        StartCoroutine(DelayedTurnOnDangerZones());
+        
+    }
+
+    private IEnumerator DelayedTurnOnDangerZones()
+    {
+        yield return new WaitForSeconds(1);
+        dangerzones.active = true;
     }
 }

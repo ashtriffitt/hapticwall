@@ -328,6 +328,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "TrackpadPosition",
+                    "type": "Value",
+                    "id": "f6da3932-d8fe-45e1-8212-abef9e7cee62",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -757,6 +766,17 @@
                     "processors": "",
                     "groups": "XR Usage",
                     "action": "PalmPose",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c7bb8dcd-5f57-4e54-a6ed-b51f4638838e",
+                    "path": "<ViveController>{LeftHand}/trackpad",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "TrackpadPosition",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

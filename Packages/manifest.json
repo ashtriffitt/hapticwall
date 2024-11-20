@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "com.htc.upm.vive.openxr": "file:C:/Users/Ashton/Downloads/com.htc.upm.vive.openxr-2.2.0.tgz",
-    "com.ultraleap.tracking": "7.0.0",
+    "com.ultraleap.tracking": "7.1.0",
+    "com.ultraleap.tracking.preview": "7.1.0",
     "com.unity.collab-proxy": "2.4.4",
     "com.unity.feature.development": "1.0.1",
     "com.unity.textmeshpro": "3.0.6",
@@ -48,7 +49,8 @@
       "name": "Ultraleap",
       "url": "https://package.openupm.com",
       "scopes": [
-        "com.ultraleap"
+        "com.ultraleap",
+        "com.ultraleap.tracking.preview"
       ]
     }
   ]
