@@ -45,6 +45,18 @@ public class ExperimentGeneratorScaling : MonoBehaviour
             this.target = target;
             this.modality = modality;
         }
+
+        public void SetTarget(int val)
+        {
+            Debug.Log("slider val: " + val);
+            target = val;
+            Debug.Log("Target set to: " + target);
+        }
+
+        public Vector3 GetOffsets()
+        {
+            return this.offsets;
+        }
     }
 
     public void Generate(Session session)

@@ -62,7 +62,7 @@ public class ViveController : MonoBehaviour
         triggerPressed = triggerPressedAction.triggered;
 
         if (trackpadClicked && trackpadPos.x < -.5f) {
-            Debug.Log("left" + trackpadPos.x);
+            //Debug.Log("left" + trackpadPos.x);
             leftClick = true;
             lastAnswer = 0;
         }
@@ -71,7 +71,7 @@ public class ViveController : MonoBehaviour
         }
 
         if (trackpadClicked && trackpadPos.x > .5f) {
-            Debug.Log("right" + trackpadPos.x);
+            //Debug.Log("right" + trackpadPos.x);
             rightClick = true;
             lastAnswer = 1;
         }
@@ -80,7 +80,7 @@ public class ViveController : MonoBehaviour
         }
 
         if(trackpadClicked && trackpadPos.y < -.5f) {
-            Debug.Log("down" + trackpadPos.y);
+            //Debug.Log("down" + trackpadPos.y);
             downClick = true;
             
         }
@@ -89,7 +89,7 @@ public class ViveController : MonoBehaviour
         }
 
         if (trackpadClicked && trackpadPos.y > .5f) {
-            Debug.Log("up" + trackpadPos.y);
+            //Debug.Log("up" + trackpadPos.y);
             upClick = true;
         }
         else {
@@ -100,7 +100,7 @@ public class ViveController : MonoBehaviour
         trackpadHold.canceled += Released;
 
         if (trackpadHeld) {
-            Debug.Log("Held");
+            //Debug.Log("Held");
             if (trackpadPos.x > 0) {
                 slider.Holding(1);
             }
