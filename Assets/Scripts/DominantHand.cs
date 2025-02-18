@@ -21,13 +21,13 @@ public class DominantHand : MonoBehaviour
 
     public void SwitchHands()
     {
-        if (gameObject.transform.GetChild(0).gameObject.transform.GetChild(0).gameObject.active) {
+       /* if (gameObject.transform.GetChild(0).gameObject.transform.GetChild(0).gameObject.active) {
             gameObject.transform.GetChild(0).gameObject.transform.GetChild(0).gameObject.active = false;
             gameObject.transform.GetChild(1).gameObject.transform.GetChild(0).gameObject.active = true;
         }
         else {
             gameObject.transform.GetChild(0).gameObject.transform.GetChild(0).gameObject.active = true;
             gameObject.transform.GetChild(1).gameObject.transform.GetChild(0).gameObject.active = false;
-        }
+        } */
     }
 }

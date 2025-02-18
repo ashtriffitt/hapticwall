@@ -57,6 +57,8 @@ public class ExperimentGeneratorScaling : MonoBehaviour
         {
             return this.offsets;
         }
+
+
     }
 
     public void Generate(Session session)
@@ -66,11 +68,11 @@ public class ExperimentGeneratorScaling : MonoBehaviour
         GameObject.Find("Black Screen Camera").GetComponent<Camera>().enabled = false;
 
         // Wall offset 0, hand offset 1, wall distance 2
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < numTrialsBlock1; i++) {
             arrayListBlock1.Add(new int[3]);
             arrayListBlock2.Add(new float[4]);
 
-            block2.Add(new AdjustmentValue(new Vector3(0, 0, 0), 0, adjustModality.Wall));
+            block2.Add(new AdjustmentValue(new Vector3(0, 0, 0), -1, adjustModality.Wall));
         }
 
         //Debug.Log("array length" + arrayListBlock1.Count);
@@ -88,6 +90,10 @@ public class ExperimentGeneratorScaling : MonoBehaviour
             }
         }
 
+        Debug.Log("ARRAYLISTBLOCK1 LENGTH" + arrayListBlock1.Count);
+
+        //arrayListBlock1.Shuffle();
+
         List<Vector3> tempList = new List<Vector3>();
 
         // Set array 2
@@ -96,13 +102,13 @@ public class ExperimentGeneratorScaling : MonoBehaviour
             Vector3 tempVector = new Vector3(arrayListBlock1[i][0], arrayListBlock1[i][1], arrayListBlock1[i][2]);
             tempList.Add(tempVector);
 
-            AdjustmentValue adj = new AdjustmentValue(new Vector3(0, 0, 0), 0, adjustModality.Wall);
+            AdjustmentValue adj = new AdjustmentValue(new Vector3(0, 0, 0), -1, adjustModality.Wall);
 
             if (temp[0] != 0) {
-                adj.offsets.x = temp[0] / 2;
+                adj.offsets.x = temp[0];
             }
             if (temp[1] != 0) {
-                adj.offsets.y = temp[1] / 2;
+                adj.offsets.y = temp[1];
             }
             adj.offsets.z = temp[2];
 
@@ -146,11 +152,13 @@ public class ExperimentGeneratorScaling : MonoBehaviour
 
         // Shuffle array list of trials
         arrayListBlock1.Shuffle();
+        block2.Shuffle();
         
         // Convert arraylist to readable grid.
         // This is unnecessary i think, can just do trialsBlcok1 = arrayListBlock1
         index = 0;
 
+        
         for (int i = 0; i < trialsBlock1.GridSize.y; i++) {
             trialsBlock1.SetCell(0, i, arrayListBlock1[i][0]);
             trialsBlock1.SetCell(1, i, arrayListBlock1[i][1]);
@@ -161,14 +169,22 @@ public class ExperimentGeneratorScaling : MonoBehaviour
         //PRACTICE GENERATION
 
         practiveEnvironmentsAdjustment = new List<AdjustmentValue>();
-        practiveEnvironmentsAdjustment.Add(new AdjustmentValue(new Vector3(-1, 0, 0), 0, adjustModality.Hands));
-        practiveEnvironmentsAdjustment.Add(new AdjustmentValue(new Vector3(0, -2, 0), 0, adjustModality.Both));
+        practiveEnvironmentsAdjustment.Add(new AdjustmentValue(new Vector3(-1, 0, 0), 25, adjustModality.Hands));
+
+        practiveEnvironmentsAdjustment.Add(new AdjustmentValue(new Vector3(0, -2, 0), 50, adjustModality.Both));
+
+        practiveEnvironmentsAdjustment.Add(new AdjustmentValue(new Vector3(-2, 2, 0), 75, adjustModality.Wall));
 
         // Create practice block
-        Block practice = session.CreateBlock(numPracticeTrials);
+        Block practice = session.CreateBlock(4);
+
+        Block practiceScl = session.CreateBlock(3);
+        Block scaling = session.CreateBlock(numTrialsBlock1);
+
+        Block practiceAdj = session.CreateBlock(3);
 
         // Create main block
-        Block scaling = session.CreateBlock(numTrialsBlock1);
+
         Block adjustment = session.CreateBlock(numTrialsBlock2);
 
         // Set trial manager offset array = to this trial array.
@@ -195,4 +211,6 @@ public class ExperimentGeneratorScaling : MonoBehaviour
         yield return new WaitForSeconds(1);
         dangerzones.active = true;
     }
+
+
 }

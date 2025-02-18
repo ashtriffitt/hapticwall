@@ -51,7 +51,7 @@ public class SampleUserPolling_ReadWrite : MonoBehaviour
             Debug.Log("Sending A");
             ushort number = 100;
 
-            MoveMotor(number);
+            //MoveMotor(number);
         }
 
         if (Input.GetKeyDown(KeyCode.Z)) {

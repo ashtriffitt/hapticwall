@@ -51,6 +51,7 @@ public class TrialManagerScaling : MonoBehaviour
     private float adjustAmt;
 
     private float wallHasBeenAdjusted;
+    private float handsHasBeenAdjusted;
 
     [SerializeField]
     private Vector3[] practiceTrialsScaling;
@@ -82,6 +83,12 @@ public class TrialManagerScaling : MonoBehaviour
 
     public ExperimentGeneratorScaling gen;
 
+    [SerializeField]
+    private BallHands hands;
+
+    [SerializeField]
+    private AudioSource timeWarning;
+
 
     // Start is called before the first frame update
     void Start()
@@ -97,7 +104,6 @@ public class TrialManagerScaling : MonoBehaviour
         changeSound = GetComponent<AudioSource>();
 
         wall = GameObject.Find("Wall").GetComponent<Renderer>();
-        // wall.material = blue;
 
         ChangeToBlackScreenCamera();
 
@@ -109,7 +115,7 @@ public class TrialManagerScaling : MonoBehaviour
     {
 
         // Skipping trial function
-        if (viveController.triggerPressed) {
+        if (viveController.triggerPressed || Input.GetKeyDown(KeyCode.Equals)) {
 
             // if WaitFor is active, end it.
             if (inTrial) {
@@ -133,9 +139,27 @@ public class TrialManagerScaling : MonoBehaviour
     // Scaling Block
     public IEnumerator ScalingBlock(Session session)
     {
+        session.EndCurrentTrial();
+
+        yield return new WaitForSeconds(1);
+
+        wallOffset.MatchWalls();
+        hands.ResetHands();
+
+        Debug.Log("0,0 environment");
+
+        ChangeToTrialCamera();
+        yield return WaitFor(session, 60);
+
+        ChangeToBlackScreenCamera();
+
+
+        yield return new WaitForSeconds(1);
+        Debug.Log("Start scaling block");
+
         practiceText.enabled = false;
         // If there are practice trials you dont need this
-        wallOffset.SetDefaultPos();
+        //wallOffset.SetDefaultPos();
         //trialNumberText.enabled = true;
 
         offsetValuesScaling = gen.trialsBlock1;
@@ -153,7 +177,10 @@ public class TrialManagerScaling : MonoBehaviour
             wallOffset.MatchWalls();
             wallOffset.MoveVirtualWall(offsetValuesScaling.GetCell(0, i) / 100);
             // Set hands
-            leap.deviceOffsetZAxis = (offsetValuesScaling.GetCell(1, i) / 100 + leapDeviceZOffset);
+
+            //leap.deviceOffsetZAxis = (offsetValuesScaling.GetCell(1, i) / 100 + leapDeviceZOffset);
+            hands.ResetHands();
+            hands.HandOffset(offsetValuesScaling.GetCell(1, i) / 100);
 
             Debug.Log("Wall offset: " + offsetValuesScaling.GetCell(0, i) / 100);
             Debug.Log("Hand offset: " + (offsetValuesScaling.GetCell(1, i) / 100 + leapDeviceZOffset));
@@ -176,7 +203,7 @@ public class TrialManagerScaling : MonoBehaviour
             wallOffset.MatchWalls();
             wallOffset.MoveVirtualWall(offsetValuesScaling.GetCell(0, i) / 100);
 
-            slider.value = 50;
+            slider.value = 0;
 
             // Trial camera
             ChangeToTrialCamera();
@@ -200,11 +227,13 @@ public class TrialManagerScaling : MonoBehaviour
             // Enable adjustment every other trial
 
             // BREAKS
-            if (i % 26 == 0 && i != 0) {
+            if (i % 25 == 0 && i != 0) {
                 breakText.enabled = true;
                 Debug.Log("Break time");
 
                 dominantHand.SwitchHands();
+
+                ChangeToBlackScreenCamera();
 
                 yield return StartCoroutine(WaitFor(session, 60));
                 breakText.enabled = false;
@@ -217,13 +246,31 @@ public class TrialManagerScaling : MonoBehaviour
 
         ChangeToBlackScreenCamera();
         // Go to adjustment block
+        StartCoroutine(PracticeAdjustment(session));
 
     }
 
-   /* public IEnumerator AdjustmentBlock(Session session)
+    public IEnumerator AdjustmentBlock(Session session)
      {
+
+        session.EndCurrentTrial();
+
+        yield return new WaitForSeconds(1);
+
+        wallOffset.MatchWalls();
+        hands.ResetHands();
+
+        Debug.Log("0,0 environment");
+
+        ChangeToTrialCamera();
+        yield return WaitFor(session, 60);
+
+        ChangeToBlackScreenCamera();
+        yield return new WaitForSeconds(1);
+
          for (int i = 0; i < trialsAdjustment.Count; i++) {
 
+             //session.BeginNextTrial();
              Debug.Log("Trial #" + i + " Wall Offset = " + trialsAdjustment[i].offsets.x + " Hand Offset = " + trialsAdjustment[i].offsets.y + " Wall Distance = " + trialsAdjustment[i].offsets.z);
 
              // Observation envrionment
@@ -233,37 +280,43 @@ public class TrialManagerScaling : MonoBehaviour
 
              // Set wall
              wallOffset.MatchWalls();
-             //wallOffset.MoveVirtualWall(offsetValues.GetCell(0, i) / 100);
-             // Set hands
-             leap.deviceOffsetZAxis = (trialsAdjustment[i].offsets.y / 100 + leapDeviceZOffset);
-             // Set wall color and trial number text
-             // WallColor(i + 1);
+            //wallOffset.MoveVirtualWall(offsetValues.GetCell(0, i) / 100);
+            // Set hands
 
-             Debug.Log("Wall offset: " + offsetValuesMatching.GetCell(0, i) / 100);
-             Debug.Log("Hand offset: " + (offsetValuesMatching.GetCell(1, i) / 100 + leapDeviceZOffset));
+            hands.ResetHands();
+            hands.HandOffset(trialsAdjustment[i].offsets.y / 100);
+             //leap.deviceOffsetZAxis = (trialsAdjustment[i].offsets.y / 100 + leapDeviceZOffset);
 
-             //Debug.Log("Actual hand offset: " + leap.deviceOffsetZAxis);
+             Debug.Log("Wall offset: " + trialsAdjustment[i].offsets.x / 100);
+             Debug.Log("Hand offset: " + (trialsAdjustment[i].offsets.y / 100 + leapDeviceZOffset));
 
              // Move real wall
              if (i != 0) {
-                 if (offsetValuesMatching.GetCell(2, i) != offsetValuesMatching.GetCell(2, i - 1)) {
-                     yield return StartCoroutine(wallOffset.OffsetRealWall(offsetValuesMatching.GetCell(2, i) / 100));
+                 if (trialsAdjustment[i].offsets.z != trialsAdjustment[i - 1].offsets.z) {
+                     yield return StartCoroutine(wallOffset.OffsetRealWall(trialsAdjustment[i].offsets.z / 100));
                  }
                  else {
                      yield return StartCoroutine(wallOffset.DummyMovement());
                  }
              }
              else {
-                 yield return StartCoroutine(wallOffset.OffsetRealWall(offsetValuesMatching.GetCell(2, i) / 100));
+                 yield return StartCoroutine(wallOffset.OffsetRealWall(trialsAdjustment[i].offsets.z / 100));
              }
 
              wallOffset.MatchWalls();
-             wallOffset.MoveVirtualWall(offsetValuesMatching.GetCell(0, i) / 100);
+             wallOffset.MoveVirtualWall(trialsAdjustment[i].offsets.x / 100);
 
-             // Wait time | Subbed for wall movement time instead
-             //yield return new WaitForSeconds(waitTime);
+            if (trialsAdjustment[i].target == -1) {
+                Debug.Log("-1 found");
+                targetText.UpdateText(75);
+            }
+            else {
+                targetText.UpdateText(trialsAdjustment[i].target);
+            }
 
-             // CanAdjustWhat(offsetValues[i]);
+             CanAdjustWhat(trialsAdjustment[i].modality);
+
+             
 
              // Trial camera
              ChangeToTrialCamera();
@@ -275,21 +328,22 @@ public class TrialManagerScaling : MonoBehaviour
              // Let subject explore
              yield return StartCoroutine(WaitFor(session, trialTime));
 
-             ManualSaveData(session, i);
+             ManualSaveAdjustmentData(session, i);
              session.EndCurrentTrial();
 
+             canAdjust = false;
 
-
-             // Enable adjustment every other trial
 
              // BREAKS
-             if (i % 32 == 0 && i != 0) {
+             if (i % 25 == 0 && i != 0) {
                  breakText.enabled = true;
                  Debug.Log("Break time");
 
+                 ChangeToBlackScreenCamera();
+
                  dominantHand.SwitchHands();
 
-                 yield return StartCoroutine(WaitFor(session, 60));
+                 yield return StartCoroutine(WaitFor(session, 300));
                  breakText.enabled = false;
              }
 
@@ -299,12 +353,15 @@ public class TrialManagerScaling : MonoBehaviour
          }
 
          ChangeToBlackScreenCamera();
+        session.End();
          // Go to adjustment block
          //endText.enabled = true;
-     } */
+     } 
 
     public IEnumerator Practice(Session session)
     {
+        slider.gameObject.SetActive(false);
+
         wallOffset.SetDefaultPos();
 
         practiceTrialsScaling = gen.practiceEnvironmentsScaling;
@@ -314,8 +371,89 @@ public class TrialManagerScaling : MonoBehaviour
 
         Debug.Log("Practice");
 
+        // (0,0) practice scenario
+
+        session.BeginNextTrial();
+
+        Debug.Log("Trial #: " + session.currentTrialNum);
+
+        currentTrialNum = session.currentTrialNum;
+
+        wallOffset.MatchWalls();
+
+        leap.deviceOffsetZAxis = leapDeviceZOffset;
+
+        ChangeToTrialCamera();
+
+        yield return WaitFor(session, 1000);
+
+        ChangeToBlackScreenCamera();
+        yield return new WaitForSeconds(1);
+
+        // Wall offset
+        session.BeginNextTrial();
+
+        Debug.Log("Trial #: " + session.currentTrialNum);
+
+        currentTrialNum = session.currentTrialNum;
+
+        wallOffset.MatchWalls();
+        wallOffset.MoveVirtualWall(-.1f);
+
+        leap.deviceOffsetZAxis = leapDeviceZOffset;
+
+        ChangeToTrialCamera();
+
+        yield return WaitFor(session, 1000);
+
+        ChangeToBlackScreenCamera();
+        yield return new WaitForSeconds(1);
+
+        // Hand offset
+
+        session.BeginNextTrial();
+
+        Debug.Log("Trial #: " + session.currentTrialNum);
+
+        currentTrialNum = session.currentTrialNum;
+
+        wallOffset.MatchWalls();
+
+        hands.ResetHands();
+        hands.HandOffset(-.1f);
+
+        ChangeToTrialCamera();
+
+        yield return WaitFor(session, 1000);
+
+        ChangeToBlackScreenCamera();
+        yield return new WaitForSeconds(1);
+
+        // prop offset
+
+        session.BeginNextTrial();
+
+        Debug.Log("Trial #: " + session.currentTrialNum);
+
+        currentTrialNum = session.currentTrialNum;
+
+        wallOffset.MatchWalls();
+        wallOffset.MoveVirtualWall(-.15f);
+
+        hands.ResetHands();
+        hands.HandOffset(.15f);
+
+        ChangeToTrialCamera();
+
+        yield return WaitFor(session, 1000);
+
+        ChangeToBlackScreenCamera();
+        yield return new WaitForSeconds(1);
+
+        /*
+        // Offset trial scenarios
         if (gen.numPracticeTrials > 0) {
-            for (int i = 0; i < gen.numPracticeTrials; i++) {
+            for (int i = 0; i < gen.numPracticeTrials - 1; i++) {
                 // See if there are any practice trials
                 session.BeginNextTrial();
 
@@ -323,8 +461,8 @@ public class TrialManagerScaling : MonoBehaviour
 
                 currentTrialNum = session.currentTrialNum;
 
-                // Non adjustment
-                if (session.currentTrialNum <= gen.numPracticeTrials / 2) {
+                // Non adjustment // NOTE: the -2 and +2s encountered to set index exists due to the initial (0,0) practice trial.
+                if (session.currentTrialNum <= 4) {
                     Debug.Log("Scaling practice");
 
                     yield return new WaitForSeconds(.3f);
@@ -332,9 +470,12 @@ public class TrialManagerScaling : MonoBehaviour
 
                     wallOffset.MatchWalls();
 
-                    wallOffset.MoveVirtualWall((float)(practiceTrialsScaling[session.currentTrialNum - 1].x / 100));
+                    wallOffset.MoveVirtualWall((float)(practiceTrialsScaling[session.currentTrialNum - 2].x / 100));
 
-                    leap.deviceOffsetZAxis = (practiceTrialsScaling[session.currentTrialNum - 1].y / 100 + leapDeviceZOffset);
+                    //leap.deviceOffsetZAxis = (practiceTrialsScaling[session.currentTrialNum - 2].y / 100 + leapDeviceZOffset);
+
+                    hands.ResetHands();
+                    hands.HandOffset(practiceTrialsScaling[session.currentTrialNum - 2].y / 100);
 
                     yield return new WaitForSeconds(1);
 
@@ -357,26 +498,30 @@ public class TrialManagerScaling : MonoBehaviour
                     slider.gameObject.SetActive(false);
                     targetText.gameObject.GetComponent<TextMeshProUGUI>().enabled = true;
 
-                    targetText.UpdateText(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 1)].target);
+                    targetText.UpdateText(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].target);
 
                     wallOffset.MatchWalls();
 
-                    wallOffset.MoveVirtualWall((float)(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 1)].offsets.x / 100));
-                    yield return StartCoroutine(wallOffset.OffsetRealWall(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 1)].offsets.z / 100));
+                    wallOffset.MoveVirtualWall((float)(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].offsets.x / 100));
+                    yield return StartCoroutine(wallOffset.OffsetRealWall(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].offsets.z / 100));
                     wallOffset.MatchWalls();
 
-                    leap.deviceOffsetZAxis = (practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 1)].offsets.y / 100 + leapDeviceZOffset);
+                    //leap.deviceOffsetZAxis = (practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].offsets.y / 100 + leapDeviceZOffset);
+
+                    hands.ResetHands();
+                    hands.HandOffset(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].offsets.y / 100);
 
                     yield return new WaitForSeconds(1);
 
                     canAdjust = true;
 
-                    // Fix this
-                    CanAdjustWhat(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 1)].modality);
+                    CanAdjustWhat(practiceTrialsAdjustment[session.currentTrialNum - (practiceTrialsScaling.Length + 2)].modality);
 
                     ChangeToTrialCamera();
 
                     yield return WaitFor(session, practiceTime);
+
+                    canAdjust = false;
 
                     //session.BeginNextTrial();
                 }
@@ -389,8 +534,9 @@ public class TrialManagerScaling : MonoBehaviour
                 }
                 else {
 
+                    
                     ChangeToBlackScreenCamera();
-                    StartCoroutine(ScalingBlock(session));
+                    
                 }
 
 
@@ -402,28 +548,132 @@ public class TrialManagerScaling : MonoBehaviour
             ChangeToTrialCamera();
             StartCoroutine(ScalingBlock(session));
         }
+        Debug.Log("Main block should start");
+        ChangeToBlackScreenCamera();
+        StartCoroutine(ScalingBlock(session));
         practiceText.enabled = false;
+        */
+
+        StartCoroutine(PracticeScaling(session));
     }
+
+    private IEnumerator PracticeScaling(Session session)
+    {
+        slider.gameObject.SetActive(true);
+
+        practiceTrialsScaling = gen.practiceEnvironmentsScaling;
+        Debug.Log("Scaling practice");
+
+
+        for (int i = 0; i < practiceTrialsScaling.Length; i++) {
+
+            session.BeginNextTrial();
+
+            Debug.Log("Trial #: " + session.currentTrialNum);
+            Debug.Log("i" + i);
+
+            currentTrialNum = session.currentTrialNum;
+            yield return new WaitForSeconds(1);
+
+            wallOffset.MatchWalls();
+
+            wallOffset.MoveVirtualWall((float)(practiceTrialsScaling[i].x / 100));
+
+            hands.ResetHands();
+            hands.HandOffset(practiceTrialsScaling[i].y / 100);
+
+            yield return new WaitForSeconds(1);
+
+            ChangeToTrialCamera();
+
+            slider.value = 0;
+            canMoveSlider = true;
+
+            yield return WaitFor(session, 1000);
+
+            canMoveSlider = false;
+
+            ChangeToBlackScreenCamera();
+        }
+
+        StartCoroutine(ScalingBlock(session));
+    }
+
+    private IEnumerator PracticeAdjustment(Session session)
+    {
+        practiceText.enabled = true;
+
+        practiceTrialsAdjustment = gen.practiveEnvironmentsAdjustment;
+        slider.gameObject.SetActive(false);
+
+        targetText.gameObject.GetComponent<TextMeshProUGUI>().enabled = true;
+
+        for (int i = 0; i < practiceTrialsAdjustment.Count; i++) {
+
+            session.BeginNextTrial();
+
+            Debug.Log("Adjustment practice");
+            Debug.Log("Trial #: " + session.currentTrialNum);
+
+            targetText.UpdateText(practiceTrialsAdjustment[i].target);
+
+            wallOffset.MatchWalls();
+
+            wallOffset.MoveVirtualWall((float)(practiceTrialsAdjustment[i].offsets.x / 100));
+            yield return StartCoroutine(wallOffset.OffsetRealWall(practiceTrialsAdjustment[i].offsets.z / 100));
+
+            //wallOffset.MatchWalls();
+
+            hands.ResetHands();
+            hands.HandOffset(practiceTrialsAdjustment[i].offsets.y / 100);
+
+            yield return new WaitForSeconds(1);
+
+            CanAdjustWhat(practiceTrialsAdjustment[i].modality);
+
+            ChangeToTrialCamera();
+            canAdjust = true;
+
+            yield return WaitFor(session, 1000);
+
+            canAdjust = false;
+
+            ChangeToBlackScreenCamera();
+        }
+
+        practiceText.enabled = false;
+        StartCoroutine(AdjustmentBlock(session));
+    }
+
 
     // Trial timer without using a WaitForSeconds(). If skip key is pressed, exits timer;
     private IEnumerator WaitFor(Session session, float waitTime)
     {
+        bool timerFlag = false;
         inTrial = true;
         // Debug.Log("waiting");
+
+        float otherTimer = 0;
+
         for (float timer = waitTime; timer >= 0; timer -= Time.deltaTime) {
+
+            otherTimer += Time.deltaTime;
+
+            if (otherTimer > 35 && !timerFlag) {
+                
+                timeWarning.Play();
+                timerFlag = true;
+            }
+
             if (skip && (timer - Time.deltaTime < waitTime - minTrialTime)) {
-                //Debug.Log(timer - Time.deltaTime);
 
                 // Replace adj target value
                 // If in practice block
                 if (session.currentBlockNum == 1 && session.currentTrialNum <= practiceTrialsScaling.Length) {
 
                     // Create new adjvalue (since structs are immutable) and replace it in the adjvalue list
-                    CopyAndReplaceAdjValue(practiceTrialsAdjustment, practiceTrialsAdjustment[currentTrialNum - 1], currentTrialNum - 1, (int)slider.value);
-
-                    //Debug.Log("Target: " + practiceTrialsAdjustment[currentTrialNum - 1].target);
+                    //CopyAndReplaceAdjValue(practiceTrialsAdjustment, practiceTrialsAdjustment[currentTrialNum - 1], currentTrialNum - 1, (int)slider.value);
                 }
-
 
                 inTrial = false;
                 skip = false;
@@ -464,15 +714,18 @@ public class TrialManagerScaling : MonoBehaviour
         // Hand offset
         Debug.Log("Save data");
 
-        session.CurrentTrial.settings.SetValue("Adjustment Hand Offset", leap.deviceOffsetZAxis - leapDeviceZOffset);
+        session.CurrentTrial.settings.SetValue("Adjustment Hand Offset", handsHasBeenAdjusted * 100);
 
         // Sort this
         session.CurrentTrial.settings.SetValue("Adjustment Wall Offset", wallHasBeenAdjusted * 100);
 
-        //session.CurrentTrial.settings.SetValue("Hand Offset", offsetValuesMatching.GetCell(1, index));
-        //session.CurrentTrial.settings.SetValue("Virtual Wall Offset From Real Wall", offsetValuesMatching.GetCell(0, index));
-        //session.CurrentTrial.settings.SetValue("Wall Distance", offsetValuesMatching.GetCell(2, index));
+        session.CurrentTrial.settings.SetValue("Hand Offset", trialsAdjustment[index].offsets.y);
+        session.CurrentTrial.settings.SetValue("Virtual Wall Offset From Real Wall", trialsAdjustment[index].offsets.x);
+        session.CurrentTrial.settings.SetValue("Wall Distance", trialsAdjustment[index].offsets.z);
 
+        session.CurrentTrial.settings.SetValue("Scale Value", trialsAdjustment[index].target);
+        session.CurrentTrial.settings.SetValue("Adjustment Modality", trialsAdjustment[index].modality.ToString());
+        
         // Questionnaire response
 
         // Start next trial.
@@ -495,6 +748,7 @@ public class TrialManagerScaling : MonoBehaviour
     private void CanAdjustWhat(ExperimentGeneratorScaling.adjustModality modality)
     {
         wallHasBeenAdjusted = 0;
+        handsHasBeenAdjusted = 0;
 
 
         if (modality == ExperimentGeneratorScaling.adjustModality.Hands) {
@@ -521,39 +775,47 @@ public class TrialManagerScaling : MonoBehaviour
 
     }
 
-    // Adjusting both doesnt work right
     public void AdjustOffset(float amt)
     {
-        Debug.Log("adjust");
+        //Debug.Log("adjust");
 
         if (canAdjust) {
             if (canAdjustWall) {
-                Debug.Log("Adjust wall");
+                //Debug.Log("Adjust wall");
                 wallOffset.MoveVirtualWall(-amt);
 
                 wallHasBeenAdjusted += amt;
             }
 
             if (canAdjustHands) {
-                Debug.Log("adjust hands");
-                leap.deviceOffsetZAxis += amt;
+                //Debug.Log("adjust hands");
+                hands.HandOffset(amt);
+                //leap.deviceOffsetZAxis += amt;
+                handsHasBeenAdjusted += amt;
             }
         }
     }
 
     private void CopyAndReplaceAdjValue(List<ExperimentGeneratorScaling.AdjustmentValue> belongsTo, ExperimentGeneratorScaling.AdjustmentValue toChange, int indexToReplace, int target)
     {
-        ExperimentGeneratorScaling.AdjustmentValue copy = new ExperimentGeneratorScaling.AdjustmentValue(toChange.offsets, target, toChange.modality);
+        Vector3 temp = new Vector3(toChange.offsets.x / 2, toChange.offsets.y / 2, toChange.offsets.z);
+        ExperimentGeneratorScaling.AdjustmentValue copy = new ExperimentGeneratorScaling.AdjustmentValue(temp, target, toChange.modality);
         belongsTo[indexToReplace] = copy;
     }
 
     private void FindOriginalIndexOfTrial(Vector3 offsets, int adjTarget)
     {
         for (int i = 0; i < trialsAdjustment.Count; i++) {
-            if (offsets == trialsAdjustment[i].offsets) {
+
+            //Debug.Log("Offsets: " + offsets);
+            //Debug.Log("trial offset" + trialsAdjustment[i].offsets);
+
+            if (offsets == trialsAdjustment[i].offsets && trialsAdjustment[i].target < 0) {
+                Debug.Log("Found copy");
                 CopyAndReplaceAdjValue(trialsAdjustment, trialsAdjustment[i], i, adjTarget);
                 break;
             }
+            
         }
     }
 

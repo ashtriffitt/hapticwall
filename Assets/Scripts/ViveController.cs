@@ -31,6 +31,8 @@ public class ViveController : MonoBehaviour
     public int lastAnswer;
 
     private bool trackpadHeld;
+
+    private TrialManagerScaling trialManager;
     
 
     // Start is called before the first frame update
@@ -50,6 +52,8 @@ public class ViveController : MonoBehaviour
 
         trackpadHold = controller.FindAction("TrackpadHold");
         trackpadHold.Enable();
+
+        trialManager = GameObject.Find("Trial Manager").GetComponent<TrialManagerScaling>();
     }
 
     // Update is called once per frame
@@ -103,9 +107,17 @@ public class ViveController : MonoBehaviour
             //Debug.Log("Held");
             if (trackpadPos.x > 0) {
                 slider.Holding(1);
+                
             }
             else {
                 slider.Holding(-1);
+            }
+
+            if (trackpadPos.y > 0) {
+                trialManager.AdjustOffset(.005f);
+            }
+            else {
+                trialManager.AdjustOffset(-.005f);
             }
         }
     }
